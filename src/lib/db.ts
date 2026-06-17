@@ -1,51 +1,42 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+// 内存数据库（Vercel serverless环境）
+// 注意：每次部署后数据会重置，生产环境建议使用Supabase或Vercel KV
 
-const dbPath = path.join(process.cwd(), 'data.db');
-const db = new Database(dbPath);
+interface User {
+  id: number;
+  email: string;
+  password: string;
+  created_at: string;
+}
 
-// 启用WAL模式提高性能
-db.pragma('journal_mode = WAL');
+interface UsageLog {
+  id: number;
+  user_id: number;
+  feature: string;
+  created_at: string;
+}
 
-// 创建用户表
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-// 创建使用记录表
-db.exec(`
-  CREATE TABLE IF NOT EXISTS usage_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    feature TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
-`);
-
-export default db;
+// 内存存储
+const users: User[] = [];
+const usageLogs: UsageLog[] = [];
+let userIdCounter = 1;
+let usageIdCounter = 1;
 
 // 获取用户今日使用次数
 export function getTodayUsage(userId: number): number {
   const today = new Date().toISOString().split('T')[0];
-  const result = db.prepare(`
-    SELECT COUNT(*) as count 
-    FROM usage_logs 
-    WHERE user_id = ? AND DATE(created_at) = ?
-  `).get(userId, today) as { count: number };
-  return result.count;
+  return usageLogs.filter(
+    (log) => log.user_id === userId && log.created_at.startsWith(today)
+  ).length;
 }
 
 // 记录使用
 export function logUsage(userId: number, feature: string): void {
-  db.prepare(`
-    INSERT INTO usage_logs (user_id, feature) VALUES (?, ?)
-  `).run(userId, feature);
+  usageLogs.push({
+    id: usageIdCounter++,
+    user_id: userId,
+    feature,
+    created_at: new Date().toISOString(),
+  });
 }
 
 // 检查是否超过免费限制
@@ -53,3 +44,28 @@ export function canUseFeature(userId: number, dailyLimit: number = 5): boolean {
   const usage = getTodayUsage(userId);
   return usage < dailyLimit;
 }
+
+// 查找用户
+export function findUserByEmail(email: string): User | undefined {
+  return users.find((u) => u.email === email);
+}
+
+// 创建用户
+export function createUser(email: string, hashedPassword: string): User {
+  const user: User = {
+    id: userIdCounter++,
+    email,
+    password: hashedPassword,
+    created_at: new Date().toISOString(),
+  };
+  users.push(user);
+  return user;
+}
+
+export default {
+  getTodayUsage,
+  logUsage,
+  canUseFeature,
+  findUserByEmail,
+  createUser,
+};

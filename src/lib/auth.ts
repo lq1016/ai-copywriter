@@ -1,13 +1,13 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import db from './db';
+import { findUserByEmail, createUser } from './db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // 注册用户
 export async function registerUser(email: string, password: string) {
   // 检查邮箱是否已存在
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = findUserByEmail(email);
   if (existing) {
     throw new Error('邮箱已注册');
   }
@@ -15,16 +15,16 @@ export async function registerUser(email: string, password: string) {
   // 加密密码
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 插入用户
-  const result = db.prepare('INSERT INTO users (email, password) VALUES (?, ?)').run(email, hashedPassword);
+  // 创建用户
+  const user = createUser(email, hashedPassword);
 
-  return { id: result.lastInsertRowid, email };
+  return { id: user.id, email: user.email };
 }
 
 // 登录用户
 export async function loginUser(email: string, password: string) {
   // 查找用户
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+  const user = findUserByEmail(email);
   if (!user) {
     throw new Error('邮箱或密码错误');
   }
