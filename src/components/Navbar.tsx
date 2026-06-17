@@ -59,17 +59,17 @@ export default function Navbar() {
               价格
             </a>
             <a
-              href="#"
+              href="/tool"
               className={`text-sm font-medium transition-colors ${
                 isScrolled
                   ? "text-gray-600 hover:text-gray-900"
                   : "text-white/80 hover:text-white"
               }`}
             >
-              教程
+              开始使用
             </a>
             <a
-              href="#pricing"
+              href="/tool"
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 isScrolled
                   ? "bg-indigo-500 text-white hover:bg-indigo-600"
@@ -131,14 +131,14 @@ export default function Navbar() {
                 价格
               </a>
               <a
-                href="#"
+                href="/tool"
                 className="text-gray-900 font-medium hover:text-indigo-600"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                教程
+                开始使用
               </a>
               <a
-                href="#pricing"
+                href="/tool"
                 className="bg-indigo-500 text-white px-4 py-2 rounded-full text-center font-medium"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
